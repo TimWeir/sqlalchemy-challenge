@@ -48,7 +48,7 @@ def home():
         f"/api/v1.0/precipitation - Precipitation stats for the most recent year of data<br/>"
         f"/api/v1.0/stations - List of stations in the dataset<br/>"
         f"/api/v1.0/tobs - List of stations in the dataset<br/>"
-        f"/api/v1.0/{recent_date} - list of the minimum temperature, the average temperature, and the max temperature for a given start date</br>"
+        f"/api/v1.0/{year_ago_date} - list of the minimum temperature, the average temperature, and the max temperature for a given start date</br>"
         f"/api/v1.0/{recent_date}/{year_ago_date} - list of the minimum temperature, the average temperature, and the max temperature for a given date range "
     )
 
@@ -93,6 +93,38 @@ def tobs():
 
     return jsonify(tobsdata)
 
+@app.route(f"/api/v1.0/{year_ago_date}")
+def startdate():
+    results = (session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs))
+                .filter(func.strftime("%Y-%m-%d", Measurement.date) >= year_ago_date)
+                .group_by(Measurement.date)
+                .all())
+    dates = []                       
+    for result in results:
+        date_dict = {}
+        date_dict["Date"] = result[0]
+        date_dict["TMIN"] = result[1]
+        date_dict["TAVG"] = result[2]
+        date_dict["TMAX"] = result[3]
+        dates.append(date_dict)
+    return jsonify(dates)
+
+@app.route(f"/api/v1.0/{recent_date}/{year_ago_date}")
+def startenddate():
+    results = (session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs))
+                .filter(func.strftime("%Y-%m-%d", Measurement.date) <= recent_date)
+                .filter(func.strftime("%Y-%m-%d", Measurement.date) >= year_ago_date)
+                .group_by(Measurement.date)
+                .all())
+    dates = []                       
+    for result in results:
+        date_dict = {}
+        date_dict["Date"] = result[0]
+        date_dict["TMIN"] = result[1]
+        date_dict["TAVG"] = result[2]
+        date_dict["TMAX"] = result[3]
+        dates.append(date_dict)
+    return jsonify(dates)
 
 if __name__ == "__main__":
     app.run(debug=True)
